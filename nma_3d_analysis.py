@@ -1,24 +1,33 @@
-import sys 
+import sys
 import numpy as np
 import scipy.integrate as sint
 import matplotlib.pyplot as plt
+from typing import (Union, List, Tuple)
 
+# Import nma library
 from src import nma_3d as nma
 
-vzmin, vzmax = -1, 1 
-phmin, phmax = -np.pi, np.pi 
+# specify angular grids and
+# angular distribution parameters
+vzmin, vzmax = -1, 1
+phmin, phmax = -np.pi, np.pi
 nvz, nph = 32, 8
 dvz, dph = (vzmax - vzmin) / nvz, (phmax - phmin) / nph
 vzs = vzmin + (0.5 + np.arange(nvz)) * dvz
 phs = phmin + (0.5 + np.arange(nph)) * dph
-fluxangle_deg = 30
+fluxangle_deg = 45
 
+
+# Angular distribution
 def f(vz, ph=0, sig=0.6):
     return np.exp(-(vz-1)**2/(2*sig**2))
 
-def ELN(vz, phi, signu=0.6, siganu=0.5, alpha=0.9, 
-        N=0.7513431855316718, bN=0.6266173746426144, 
-        relative_fluxangle=fluxangle_deg*(np.pi/180.0)):
+
+# ELN
+def ELN(vz: Union[float, np.ndarray[float]], phi: Union[float, np.ndarray[float]],
+        signu: float = 0.6, siganu: float = 0.5, alpha: float = 0.9,
+        N: float = 0.7513431855316718, bN: float = 0.6266173746426144,
+        relative_fluxangle=fluxangle_deg*(np.pi/180.0)) -> Union[float, np.ndarray[float]]:
 
     vx = np.sqrt(1.0 - vz**2) * np.cos(phi)
     vy = np.sqrt(1.0 - vz**2) * np.sin(phi)
@@ -30,29 +39,32 @@ def ELN(vz, phi, signu=0.6, siganu=0.5, alpha=0.9,
 
     return f(vz=vz, sig=signu)/N - alpha * f(vz=vzr, sig=siganu) / bN
 
+
 def main():
     eln_params = {
-        'ELN' : ELN,
-        'vz_range' : (vzmin, vzmax),
-        'phi_range' : (phmin, phmax),
+        'ELN': ELN,
+        'vz_range': (vzmin, vzmax),
+        'phi_range': (phmin, phmax),
         'nvz': nvz,
-        'nphi':nph,
+        'nphi': nph,
     }
 
-    kx = np.fft.fftshift(np.fft.fftfreq(n=100, d=1.0)) 
-    ky = np.fft.fftshift(np.fft.fftfreq(n=100, d=1.0)) 
-    kz = np.fft.fftshift(np.fft.fftfreq(n=100, d=1.0)) 
+    kx = np.fft.fftshift(np.fft.fftfreq(n=100, d=1.0))
+    ky = np.fft.fftshift(np.fft.fftfreq(n=100, d=1.0))
+    kz = np.fft.fftshift(np.fft.fftfreq(n=100, d=1.0))
 
     lsa = nma.NMA_3D(ELN_params=eln_params)
 
-    store_to = lsa.run(
-        kxs=kx, 
-        kys=ky, #np.array([0,]), 
+    store_to = f"lsa_{fluxangle_deg:.0f}.dat"
+
+    lsa.run(
+        kxs=kx,
+        kys=ky,  # np.array([0,]),
         kzs=kz,
-        store_to=f"lsa_{fluxangle_deg:.0f}.dat",
+        store_to=store_to,
     )
 
-    print (f"Results dtored at {store_to}")
+    print(f"Results dtored at {store_to}")
 
 
 if __name__ == "__main__":
