@@ -232,8 +232,8 @@ class NMA_3D:
         )
 
         epsilons = (e0, ex, ey, ez)
-        o_r = np.zeros((len(kzs), len(kys), len(kxs)))
-        o_i = np.zeros((len(kzs), len(kys), len(kxs)))
+        o_r = np.zeros((len(kxs), len(kys), len(kzs)))
+        o_i = np.zeros((len(kxs), len(kys), len(kzs)))
 
         with open("analysis.dat", "w") as f:
             sys.stdout.flush()
@@ -256,6 +256,7 @@ class NMA_3D:
                 for iky, ky in enumerate(kys):
                     for ikx, kx in enumerate(kxs):
                         current_itr = ikz * iky * ikx
+
                         if ikx % 10 == 0:
                             print(
                                 f"\r{progress[ikz%len(progress)]} {int(ikz*100/len(kzs))}% [{ikz=} {iky=} {ikx=}]", end="")
@@ -263,6 +264,7 @@ class NMA_3D:
 
                         M = self.characteristic_matrix(
                             charMs, epsilons, kx=kx, ky=ky, kz=kz)
+
                         eival = la.eig(M)[0]
                         evi = 0.0
                         evr = 0.0
@@ -271,8 +273,8 @@ class NMA_3D:
                         idx = np.argmax(np.abs(eival.imag))
                         evr = eival.real.max()
 
-                        o_i[ikz][iky][ikx] = np.abs(evi)
-                        o_r[ikz][iky][ikx] = np.abs(evr)
+                        o_i[ikx][iky][ikz] = np.abs(evi)
+                        o_r[ikx][iky][ikx] = np.abs(evr)
 
             print(f"\r{'['}{'='*3}{'='*3}] {100}%", end="")
             sys.stdout.flush()
@@ -295,8 +297,24 @@ class NMA_3D:
 
     # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
 
+    def plot_eln(self, store_to) -> None:
+        eln_arr = np.zeros((self.nvz, self.nphi))
+        for vzid, vz in enumerate(self.vz):
+            for phid, phi in enumerate(self.phi):
+                eln_arr[vzid][phid] = self.ELN(vz, phi)
+
+        plt.contourf(self.phi/np.pi, self.vz, eln_arr,
+                     levels=self.nvz, cmap="RdBu_r")
+        plt.colorbar()
+        plt.savefig(store_to, dpi=150)
+        print(f"ELN plot saved to {store_to}")
+        return
+
+    # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+
     def run(self, kxs, kys, kzs, store_to, mode='sym') -> None:
 
+        self.plot_eln(f"ELN_{''.join(store_to.split('.')[:-1])}.png")
         if mode == 'sym':
             charMs = self.coeff_matrices_sym_pres()
 
